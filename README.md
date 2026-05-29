@@ -24,3 +24,8 @@ Swagger: http://127.0.0.1:3000/api-docs
 
 ## Seguridad
 No se puede publicar `.env` ni credenciales de MongoDB Atlas.
+
+
+Opcional para ejecutar sin Atlas
+README un ejemplo alterno con Mongo local:
+MONGO_URI=mongodb://127.0.0.1:27017/db_apoyo_damnificados
