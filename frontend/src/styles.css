@@ -1,0 +1,16 @@
+html, body { height: 100%; }
+body {
+  font-family: "Times New Roman", Times, serif;
+  background: radial-gradient(circle at top, #1d6f6b 0%, #0f172a 55%, #0b1220 100%);
+  color: #111827;
+}
+.page-wrap { min-height: calc(100vh - 72px); }
+.card-glass {
+  background: rgba(255,255,255,.92);
+  backdrop-filter: blur(8px);
+}
+.brand-badge{
+  width:44px;height:44px;border-radius:12px;
+  display:inline-flex;align-items:center;justify-content:center;
+  font-weight:800;background:#22c55e;color:#0f172a;
+}

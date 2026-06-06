@@ -6,9 +6,9 @@ async function connectDB() {
 
   await mongoose.connect(uri);
 
-  mongoose.connection.on("connected", () => console.log(" MongoDB conectado"));
-  mongoose.connection.on("error", (err) => console.error(" MongoDB error:", err.message));
-  mongoose.connection.on("disconnected", () => console.warn(" MongoDB desconectado"));
+  mongoose.connection.on("connected", () => console.log("✅ MongoDB conectado"));
+  mongoose.connection.on("error", (err) => console.error("❌ MongoDB error:", err.message));
+  mongoose.connection.on("disconnected", () => console.warn("⚠️ MongoDB desconectado"));
 }
 
 module.exports = connectDB;

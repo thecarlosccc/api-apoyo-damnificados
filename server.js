@@ -13,13 +13,23 @@ const userRoutes = require("./src/routes/users.routes");
 const damnificadoRoutes = require("./src/routes/damnificados.routes");
 const donanteRoutes = require("./src/routes/donantes.routes");
 const donacionRoutes = require("./src/routes/donaciones.routes");
+const productosRoutes = require("./src/routes/productos.routes");
 const puntosRoutes = require("./src/routes/puntosInteres.routes");
 const notificacionesRoutes = require("./src/routes/notificaciones.routes");
 
 const app = express();
 const port = process.env.PORT || 3000;
 
-app.use(helmet());
+// Helmet por defecto activa CSP (Content-Security-Policy) y algunas políticas
+// que pueden impedir que Swagger UI cargue/expanda correctamente en el navegador.
+// Por eso se deshabilitan esas políticas específicas.
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false,
+    crossOriginResourcePolicy: false,
+  })
+);
 app.use(cors({ origin: process.env.CORS_ORIGIN || "*" }));
 app.use(express.json({ limit: "2mb" }));
 app.use(express.urlencoded({ extended: false }));
@@ -36,6 +46,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/damnificados", damnificadoRoutes);
 app.use("/api/donantes", donanteRoutes);
 app.use("/api/donaciones", donacionRoutes);
+app.use("/api/productos", productosRoutes);
 app.use("/api/puntos-interes", puntosRoutes);
 app.use("/api/notificaciones", notificacionesRoutes);
 

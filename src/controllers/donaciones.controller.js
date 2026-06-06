@@ -1,6 +1,24 @@
 const Donacion = require("../models/Donacion");
 const Donante = require("../models/Donante");
 
+// =========================
+// CATÁLOGO PÚBLICO
+// =========================
+// Permite mostrar donaciones disponibles como “productos” en el catálogo del frontend.
+// No requiere autenticación.
+exports.listarCatalogo = async (req, res) => {
+  try {
+    const items = await Donacion.find({ estado: "disponible" })
+      .select("tipo_donacion descripcion cantidad unidad_medida ubicacion_entrega estado fecha_oferta")
+      .sort({ fecha_oferta: -1 });
+
+    return res.json(items);
+  } catch (err) {
+    console.error("listarCatalogo (donaciones):", err);
+    return res.status(500).json({ message: "Error consultando catálogo" });
+  }
+};
+
 exports.list = async (req, res) => {
   const items = await Donacion.find()
     .populate({ path: "donante_id", populate: { path: "usuario_id", select: "nombre_completo" } })

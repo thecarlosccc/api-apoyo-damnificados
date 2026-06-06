@@ -66,7 +66,7 @@ exports.registerDamnificado = async (req, res) => {
       correo: correo.toLowerCase(),
       telefono,
       contrasena: hash,
-      rol: "dammificado"
+      rol: "damnificado"
     });
 
     await Damnificado.create({
