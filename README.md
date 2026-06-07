@@ -1,31 +1,45 @@
-# API - Sistema de Gestión para Apoyo a Damnificados (TCC)
+# TCC — Sistema de Apoyo a Damnificados
 
-Backend en **Node.js + Express + MongoDB** con **Swagger** y **JWT**, orientado a gestionar:
-- Usuarios (roles: administrador, donante, damnificado)
-- Damnificados
-- Donantes
+Proyecto desarrollado para el Trabajo Colaborativo Contextualizado (TCC) de **Desarrollo de Software Web**.
+
+## Tecnologías
+- **Backend:** Node.js + Express + MongoDB + Swagger (OpenAPI) + JWT
+- **Frontend:** React + Vite (carpeta `/frontend`)
+- **Base de datos:** MongoDB Atlas (recomendado) o MongoDB local
+
+## ¿Qué hace el sistema?
+La aplicación permite gestionar:
+- Usuarios (roles: **administrador**, **donante**, **damnificado**)
+- Donantes y su perfil
+- Damnificados y su estado de solicitud
 - Donaciones (inventario de ayudas)
-- Puntos de interés (albergues/centros/puntos de entrega)
+- Puntos de interés (albergues, puntos de acopio, etc.)
 - Notificaciones
 
-> Nota: para el **“catálogo de productos”**, este proyecto considera una **donación disponible** como un **producto**. Por eso existe el endpoint público `/api/productos`.
+> Nota (catálogo de productos): Para cumplir la idea de “catálogo”, el sistema considera una **donación disponible** como un **producto** mostrado en un catálogo público. Por eso existe el endpoint público `/api/productos`.
 
+---
+
+## Estructura del repositorio
+
+- **Backend (API):** está en la **raíz del repositorio**
+- **Frontend (React):** está en la carpeta **`/frontend`**
+
+```
 api-apoyo-damnificados/
-  backend/                 (API Node/Express + Swagger + MongoDB)
-    server.js
-    src/
+  server.js
+  src/
+  package.json
+  package-lock.json
+  .env.example
+  README.md
+  frontend/
     package.json
     package-lock.json
+    vite.config.js
     .env.example
-    README.md              (opcional, solo backend)
-  frontend/                (React + Vite)
     src/
-    package.json
-    package-lock.json
-    .env.example
-    README.md              (opcional, solo frontend)
-  README.md                (principal: explica cómo ejecutar ambos)
-  .gitignore               (único, en la raíz)
+```
 
 ---
 
@@ -33,46 +47,113 @@ api-apoyo-damnificados/
 - Node.js 18+ (recomendado 20+)
 - MongoDB Atlas (o MongoDB local)
 
-## Instalación
-```bash
-npm install
+---
+
+## Configuración de variables de entorno
+
+### 1) Backend (raíz del repo)
+Crea un archivo **`.env`** en la raíz (NO se sube a GitHub). Usa `.env.example` como guía.
+
+Ejemplo:
+```
+PORT=3000
+MONGO_URI=TU_URI_DE_MONGODB_ATLAS
+JWT_SECRET=******
+CORS_ORIGIN=http://localhost:5173
 ```
 
-## Variables de entorno
-Crea `.env` (NO se sube a GitHub). Usa `.env.example` como guía.
+Importante:
+- **No publicamos `.env` ni credenciales de MongoDB Atlas.**
+- Nos aseguramos que `.env` esté en `.gitignore`.
 
-## Ejecutar
+Opcional (MongoDB local):
+```
+MONGO_URI=mongodb://127.0.0.1:27017/db_apoyo_damnificados
+```
+
+### 2) Frontend (carpeta /frontend)
+Crea **`frontend/.env`** (NO se sube). Usa `frontend/.env.example` como guía.
+
+Ejemplo:
+```
+VITE_API_BASE=http://127.0.0.1:3000
+```
+
+---
+
+## Cómo ejecutar el proyecto (paso a paso)
+
+### A) Ejecutar BACKEND (API) — puerto 3000
+En la **raíz del repo** (donde está `server.js`):
+
 ```bash
+npm install
 npm run dev
 ```
 
-API: `http://127.0.0.1:3000`  
-Swagger: `http://127.0.0.1:3000/api-docs`
+- API: http://127.0.0.1:3000  
+- Swagger: http://127.0.0.1:3000/api-docs  
+
+### B) Ejecutar FRONTEND (React) — puerto 5173
+En la carpeta **frontend**:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+- Frontend: http://localhost:5173
+
+---
+
+## Swagger + JWT (cómo autenticarse)
+
+1) En Swagger entra al endpoint:
+- `POST /api/auth/login`
+
+2) Ejecuta el login y copia el valor del campo `token` que retorna.
+
+3) Presiona **Authorize** (arriba a la derecha) y pega:
+
+**Solo el token** (sin comillas, sin escribir “Bearer”).
+
+Swagger enviará el header automáticamente:
+`Authorization: Bearer <token>`
 
 ---
 
 ## Endpoints clave
+
 ### Catálogo público
-- `GET /api/productos` → lista donaciones **disponibles** como “productos”
+- `GET /api/productos` → lista donaciones disponibles como “productos”
 - `GET /api/puntos-interes` → lista puntos de interés (público)
 
-### Autenticación (JWT)
+### Autenticación
+- `POST /api/auth/register` → registra donante (autoregistro)
 - `POST /api/auth/login` → devuelve `{ token, user }`
+- `POST /api/auth/register-damnificado` → crear damnificado (solo admin)
 
-### Rutas protegidas
-En Swagger, primero usa **Authorize** y pega el token (sin comillas). Luego prueba endpoints con candado.
+### Panel administrativo (requiere rol admin)
+- `/api/users` → gestionar usuarios (roles/estado)
+- `/api/damnificados` → listar y administrar damnificados
+- `/api/donantes` → listar y administrar donantes
+- `/api/donaciones` → administrar donaciones
+- `/api/puntos-interes` → administrar puntos de interés
+- `/api/notificaciones` → ver y marcar notificaciones
 
 ---
 
 ## Seguridad
-<<<<<<< HEAD
-No se puede publicar `.env` ni credenciales de MongoDB Atlas.
+- Autenticación por **JWT**.
+- Rutas protegidas por rol (`administrador`, `donante`, `damnificado`).
+- `.env` y credenciales **NO** se suben a GitHub (solo `.env.example`).
 
+---
 
-Opcional para ejecutar sin Atlas
-README un ejemplo alterno con Mongo local:
-MONGO_URI=mongodb://127.0.0.1:27017/db_apoyo_damnificados
-=======
-- No publiques `.env` ni credenciales.
-- Revisa que `.env` esté en `.gitignore`.
->>>>>>> 32600ef (Update backend and add frontend)
+## Nota final
+El proyecto está dividido claramente en:
+- **Backend (raíz)**
+- **Frontend (carpeta `/frontend`)**
+
+Esto permite al profesor clonar un solo repositorio y ejecutar ambos componentes.
