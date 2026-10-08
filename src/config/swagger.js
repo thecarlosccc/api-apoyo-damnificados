@@ -3,18 +3,36 @@ const swaggerJSDoc = require("swagger-jsdoc");
 const options = {
   definition: {
     openapi: "3.0.0",
+
     info: {
       title: "API Apoyo a Damnificados",
       version: "1.0.0",
-      description: "API RESTful (Node.js + Express + MongoDB) para gestionar usuarios, damnificados, donantes, donaciones, puntos de interés y notificaciones."
+      description:
+        "API RESTful desarrollada con Node.js, Express y MongoDB para gestionar autenticación, usuarios, categorías de incidencias, damnificados, donantes, donaciones, puntos de interés y notificaciones."
     },
-    servers: [{ url: "http://127.0.0.1:3000" }],
+
+    servers: [
+      {
+        url: "https://api-apoyo-damnificados.onrender.com",
+        description: "Servidor de producción - Render"
+      },
+      {
+        url: "http://127.0.0.1:3000",
+        description: "Servidor local"
+      }
+    ],
+
     components: {
       securitySchemes: {
-        bearerAuth: { type: "http", scheme: "bearer", bearerFormat: "JWT" }
+        bearerAuth: {
+          type: "http",
+          scheme: "bearer",
+          bearerFormat: "JWT"
+        }
       }
     }
   },
+
   apis: ["./src/routes/*.routes.js"]
 };
 
