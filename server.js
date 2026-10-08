@@ -16,6 +16,7 @@ const donacionRoutes = require("./src/routes/donaciones.routes");
 const productosRoutes = require("./src/routes/productos.routes");
 const puntosRoutes = require("./src/routes/puntosInteres.routes");
 const notificacionesRoutes = require("./src/routes/notificaciones.routes");
+const categoriasRoutes = require("./src/routes/categorias.routes");
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -30,15 +31,22 @@ app.use(
     crossOriginResourcePolicy: false,
   })
 );
+
 app.use(cors({ origin: process.env.CORS_ORIGIN || "*" }));
 app.use(express.json({ limit: "2mb" }));
 app.use(express.urlencoded({ extended: false }));
 app.use(morgan("dev"));
 
 // Swagger
-app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.use(
+  "/api-docs",
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerSpec)
+);
 
-app.get("/", (req, res) => res.send("API Apoyo Damnificados OK ✅"));
+app.get("/", (req, res) =>
+  res.send("API Apoyo Damnificados OK ✅")
+);
 
 // API routes
 app.use("/api/auth", authRoutes);
@@ -49,19 +57,39 @@ app.use("/api/donaciones", donacionRoutes);
 app.use("/api/productos", productosRoutes);
 app.use("/api/puntos-interes", puntosRoutes);
 app.use("/api/notificaciones", notificacionesRoutes);
+app.use("/api/categorias", categoriasRoutes);
 
-app.use((req, res) => res.status(404).json({ message: "Ruta no encontrada" }));
+// Ruta no encontrada
+app.use((req, res) =>
+  res.status(404).json({
+    message: "Ruta no encontrada"
+  })
+);
 
+// Manejo general de errores
 app.use((err, req, res, next) => {
   console.error("❌ Error:", err);
-  res.status(500).json({ message: "Error interno del servidor" });
+
+  res.status(500).json({
+    message: "Error interno del servidor"
+  });
 });
 
 connectDB()
   .then(() => {
     app.listen(port, () => {
-      console.log(`🚀 API corriendo en http://127.0.0.1:${port}`);
-      console.log(`📚 Swagger en http://127.0.0.1:${port}/api-docs`);
+      console.log(
+        `🚀 API corriendo en http://127.0.0.1:${port}`
+      );
+
+      console.log(
+        `📚 Swagger en http://127.0.0.1:${port}/api-docs`
+      );
     });
   })
-  .catch((e) => console.error("❌ No se pudo iniciar:", e.message));
+  .catch((e) =>
+    console.error(
+      "❌ No se pudo iniciar:",
+      e.message
+    )
+  );
