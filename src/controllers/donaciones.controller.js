@@ -10,13 +10,17 @@ const SolicitudApoyo = require(
   "../models/SolicitudApoyo"
 );
 
+const {
+  crearNotificacion
+} = require(
+  "./notificaciones.controller"
+);
+
 
 /*
  * =========================================================
  * FUNCIÓN AUXILIAR
  * =========================================================
- * Devuelve una donación con todas las relaciones
- * principales pobladas para responder al frontend.
  */
 async function obtenerDonacionCompleta(id) {
   return Donacion.findById(id)
@@ -52,10 +56,8 @@ async function obtenerDonacionCompleta(id) {
 
 /*
  * =========================================================
- * CATÁLOGO DE DONACIONES DISPONIBLES
+ * CATÁLOGO
  * =========================================================
- *
- * Permite consultar ayudas disponibles.
  */
 exports.listarCatalogo = async (
   req,
@@ -81,6 +83,7 @@ exports.listarCatalogo = async (
     return res.status(200).json(
       items
     );
+
   } catch (error) {
     console.error(
       "Error consultando catálogo:",
@@ -90,7 +93,9 @@ exports.listarCatalogo = async (
     return res.status(500).json({
       message:
         "Error consultando catálogo de donaciones",
-      error: error.message
+
+      error:
+        error.message
     });
   }
 };
@@ -98,15 +103,8 @@ exports.listarCatalogo = async (
 
 /*
  * =========================================================
- * LISTAR TODAS LAS DONACIONES
+ * LISTAR TODAS
  * =========================================================
- *
- * Uso administrativo.
- *
- * Filtros opcionales:
- *
- * ?estado=disponible
- * ?tipo=alimentos
  */
 exports.listar = async (
   req,
@@ -156,6 +154,7 @@ exports.listar = async (
     return res.status(200).json(
       items
     );
+
   } catch (error) {
     console.error(
       "Error listando donaciones:",
@@ -165,7 +164,9 @@ exports.listar = async (
     return res.status(500).json({
       message:
         "Error al consultar las donaciones",
-      error: error.message
+
+      error:
+        error.message
     });
   }
 };
@@ -175,9 +176,6 @@ exports.listar = async (
  * =========================================================
  * LISTAR MIS DONACIONES
  * =========================================================
- *
- * El donante consulta únicamente
- * las donaciones que él ha registrado.
  */
 exports.listarMias = async (
   req,
@@ -221,6 +219,7 @@ exports.listarMias = async (
     return res.status(200).json(
       items
     );
+
   } catch (error) {
     console.error(
       "Error consultando mis donaciones:",
@@ -230,7 +229,9 @@ exports.listarMias = async (
     return res.status(500).json({
       message:
         "Error al consultar las donaciones del usuario",
-      error: error.message
+
+      error:
+        error.message
     });
   }
 };
@@ -240,8 +241,6 @@ exports.listarMias = async (
  * =========================================================
  * CREAR DONACIÓN
  * =========================================================
- *
- * Solo usuarios con rol donante.
  */
 exports.crear = async (
   req,
@@ -355,6 +354,7 @@ exports.crear = async (
       donacion:
         donacionCompleta
     });
+
   } catch (error) {
     console.error(
       "Error creando donación:",
@@ -364,7 +364,9 @@ exports.crear = async (
     return res.status(500).json({
       message:
         "Error al registrar la donación",
-      error: error.message
+
+      error:
+        error.message
     });
   }
 };
@@ -374,9 +376,6 @@ exports.crear = async (
  * =========================================================
  * CANCELAR MI DONACIÓN
  * =========================================================
- *
- * El donante puede cancelar una ayuda
- * solamente mientras esté disponible.
  */
 exports.cancelarMia = async (
   req,
@@ -414,7 +413,7 @@ exports.cancelarMia = async (
 
     if (
       donacion.estado !==
-        "disponible"
+      "disponible"
     ) {
       return res.status(400).json({
         message:
@@ -433,6 +432,7 @@ exports.cancelarMia = async (
 
       donacion
     });
+
   } catch (error) {
     console.error(
       "Error cancelando donación:",
@@ -442,7 +442,9 @@ exports.cancelarMia = async (
     return res.status(500).json({
       message:
         "Error al cancelar la donación",
-      error: error.message
+
+      error:
+        error.message
     });
   }
 };
@@ -453,18 +455,17 @@ exports.cancelarMia = async (
  * ASIGNAR DONACIÓN
  * =========================================================
  *
- * Solo administrador.
+ * Al asignar:
  *
- * La donación se asigna directamente
- * a una Solicitud de Apoyo.
- *
- * Al asignarla:
- *
- * donación:
+ * Donación:
  * disponible -> asignada
  *
- * solicitud:
+ * Solicitud:
  * pendiente -> en_proceso
+ *
+ * Notificaciones:
+ * - damnificado
+ * - donante
  */
 exports.asignar = async (
   req,
@@ -496,7 +497,7 @@ exports.asignar = async (
 
     if (
       donacion.estado !==
-        "disponible"
+      "disponible"
     ) {
       return res.status(400).json({
         message:
@@ -528,6 +529,11 @@ exports.asignar = async (
       });
     }
 
+    const donante =
+      await Donante.findById(
+        donacion.donante_id
+      );
+
     /*
      * Actualizar donación.
      */
@@ -546,8 +552,7 @@ exports.asignar = async (
     await donacion.save();
 
     /*
-     * Actualizar automáticamente
-     * la solicitud.
+     * Actualizar solicitud.
      */
     solicitud.estado =
       "en_proceso";
@@ -556,6 +561,64 @@ exports.asignar = async (
       "Se asignó una donación para atender esta solicitud.";
 
     await solicitud.save();
+
+
+    /*
+     * =====================================================
+     * NOTIFICACIÓN AL DAMNIFICADO
+     * =====================================================
+     */
+    await crearNotificacion({
+      usuario_destino_id:
+        solicitud.usuario_id,
+
+      titulo:
+        "Donación asignada",
+
+      mensaje:
+        `Se asignó una donación de tipo "${donacion.tipo_donacion}" a tu solicitud de apoyo "${solicitud.tipo_apoyo}".`,
+
+      tipo:
+        "donacion_asignada",
+
+      modulo:
+        "donacion",
+
+      recurso_id:
+        donacion._id
+    });
+
+
+    /*
+     * =====================================================
+     * NOTIFICACIÓN AL DONANTE
+     * =====================================================
+     */
+    if (
+      donante &&
+      donante.usuario_id
+    ) {
+      await crearNotificacion({
+        usuario_destino_id:
+          donante.usuario_id,
+
+        titulo:
+          "Tu donación fue asignada",
+
+        mensaje:
+          `Tu donación de tipo "${donacion.tipo_donacion}" fue asignada a una solicitud de apoyo.`,
+
+        tipo:
+          "donacion_asignada",
+
+        modulo:
+          "donacion",
+
+        recurso_id:
+          donacion._id
+      });
+    }
+
 
     const donacionCompleta =
       await obtenerDonacionCompleta(
@@ -569,6 +632,7 @@ exports.asignar = async (
       donacion:
         donacionCompleta
     });
+
   } catch (error) {
     console.error(
       "Error asignando donación:",
@@ -578,7 +642,9 @@ exports.asignar = async (
     return res.status(500).json({
       message:
         "Error al asignar la donación",
-      error: error.message
+
+      error:
+        error.message
     });
   }
 };
@@ -589,15 +655,15 @@ exports.asignar = async (
  * MARCAR DONACIÓN COMO ENTREGADA
  * =========================================================
  *
- * Solo administrador.
- *
- * Al confirmar la entrega:
- *
- * donación:
+ * Donación:
  * asignada -> entregada
  *
- * solicitud:
+ * Solicitud:
  * en_proceso -> atendida
+ *
+ * Notificaciones:
+ * - damnificado
+ * - donante
  */
 exports.marcarEntregada = async (
   req,
@@ -618,13 +684,18 @@ exports.marcarEntregada = async (
 
     if (
       donacion.estado !==
-        "asignada"
+      "asignada"
     ) {
       return res.status(400).json({
         message:
           "Solo puede entregarse una donación previamente asignada"
       });
     }
+
+    const donante =
+      await Donante.findById(
+        donacion.donante_id
+      );
 
     donacion.estado =
       "entregada";
@@ -634,14 +705,13 @@ exports.marcarEntregada = async (
 
     await donacion.save();
 
-    /*
-     * Si existe solicitud asociada,
-     * también se marca como atendida.
-     */
+
+    let solicitud = null;
+
     if (
       donacion.solicitud_apoyo_id
     ) {
-      const solicitud =
+      solicitud =
         await SolicitudApoyo.findById(
           donacion.solicitud_apoyo_id
         );
@@ -660,6 +730,68 @@ exports.marcarEntregada = async (
       }
     }
 
+
+    /*
+     * =====================================================
+     * NOTIFICACIÓN AL DAMNIFICADO
+     * =====================================================
+     */
+    if (
+      donacion.beneficiario_usuario_id
+    ) {
+      await crearNotificacion({
+        usuario_destino_id:
+          donacion.beneficiario_usuario_id,
+
+        titulo:
+          "Donación entregada",
+
+        mensaje:
+          `La donación de tipo "${donacion.tipo_donacion}" asignada a tu solicitud fue marcada como entregada.`,
+
+        tipo:
+          "donacion_entregada",
+
+        modulo:
+          "donacion",
+
+        recurso_id:
+          donacion._id
+      });
+    }
+
+
+    /*
+     * =====================================================
+     * NOTIFICACIÓN AL DONANTE
+     * =====================================================
+     */
+    if (
+      donante &&
+      donante.usuario_id
+    ) {
+      await crearNotificacion({
+        usuario_destino_id:
+          donante.usuario_id,
+
+        titulo:
+          "Donación entregada",
+
+        mensaje:
+          `Tu donación de tipo "${donacion.tipo_donacion}" fue entregada correctamente al beneficiario.`,
+
+        tipo:
+          "donacion_entregada",
+
+        modulo:
+          "donacion",
+
+        recurso_id:
+          donacion._id
+      });
+    }
+
+
     const donacionCompleta =
       await obtenerDonacionCompleta(
         donacion._id
@@ -672,6 +804,7 @@ exports.marcarEntregada = async (
       donacion:
         donacionCompleta
     });
+
   } catch (error) {
     console.error(
       "Error entregando donación:",
@@ -681,7 +814,9 @@ exports.marcarEntregada = async (
     return res.status(500).json({
       message:
         "Error al marcar la donación como entregada",
-      error: error.message
+
+      error:
+        error.message
     });
   }
 };

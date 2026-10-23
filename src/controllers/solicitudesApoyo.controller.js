@@ -6,6 +6,12 @@ const Incidencia = require(
   "../models/Incidencia"
 );
 
+const {
+  crearNotificacion
+} = require(
+  "./notificaciones.controller"
+);
+
 
 /*
  * =========================================================
@@ -15,7 +21,10 @@ const Incidencia = require(
  * Solo un usuario con rol damnificado.
  * Puede asociarse opcionalmente a una incidencia propia.
  */
-exports.crear = async (req, res) => {
+exports.crear = async (
+  req,
+  res
+) => {
   try {
     const {
       incidencia_id,
@@ -38,10 +47,8 @@ exports.crear = async (req, res) => {
 
     /*
      * Si se envía incidencia_id,
-     * verificamos que:
-     *
-     * 1. exista
-     * 2. pertenezca al usuario autenticado
+     * verificamos que exista y
+     * pertenezca al usuario autenticado.
      */
     if (incidencia_id) {
       const incidencia =
@@ -58,9 +65,48 @@ exports.crear = async (req, res) => {
       }
     }
 
+    const prioridadesPermitidas = [
+      "baja",
+      "media",
+      "alta",
+      "critica"
+    ];
+
+    const prioridadFinal =
+      prioridad || "media";
+
+    if (
+      !prioridadesPermitidas.includes(
+        prioridadFinal
+      )
+    ) {
+      return res.status(400).json({
+        message:
+          "Prioridad no válida"
+      });
+    }
+
+    const cantidadFinal =
+      cantidad_requerida !== undefined
+        ? Number(cantidad_requerida)
+        : 1;
+
+    if (
+      Number.isNaN(
+        cantidadFinal
+      ) ||
+      cantidadFinal < 1
+    ) {
+      return res.status(400).json({
+        message:
+          "La cantidad requerida debe ser mayor o igual a 1"
+      });
+    }
+
     const solicitud =
       await SolicitudApoyo.create({
-        usuario_id: req.user._id,
+        usuario_id:
+          req.user._id,
 
         incidencia_id:
           incidencia_id || null,
@@ -72,7 +118,7 @@ exports.crear = async (req, res) => {
           descripcion.trim(),
 
         cantidad_requerida:
-          cantidad_requerida || 1,
+          cantidadFinal,
 
         unidad_medida:
           unidad_medida
@@ -80,9 +126,10 @@ exports.crear = async (req, res) => {
             : "unidad",
 
         prioridad:
-          prioridad || "media",
+          prioridadFinal,
 
-        estado: "pendiente"
+        estado:
+          "pendiente"
       });
 
     const solicitudCompleta =
@@ -105,6 +152,7 @@ exports.crear = async (req, res) => {
       solicitud:
         solicitudCompleta
     });
+
   } catch (error) {
     console.error(
       "Error creando solicitud de apoyo:",
@@ -114,7 +162,9 @@ exports.crear = async (req, res) => {
     return res.status(500).json({
       message:
         "Error al registrar la solicitud de apoyo",
-      error: error.message
+
+      error:
+        error.message
     });
   }
 };
@@ -133,7 +183,10 @@ exports.crear = async (req, res) => {
  * ?prioridad=alta
  * ?tipo_apoyo=alimentos
  */
-exports.listar = async (req, res) => {
+exports.listar = async (
+  req,
+  res
+) => {
   try {
     const filtro = {};
 
@@ -151,7 +204,8 @@ exports.listar = async (req, res) => {
       filtro.tipo_apoyo = {
         $regex:
           req.query.tipo_apoyo,
-        $options: "i"
+        $options:
+          "i"
       };
     }
 
@@ -168,12 +222,14 @@ exports.listar = async (req, res) => {
           "titulo ubicacion nivel_prioridad estado"
         )
         .sort({
-          fecha_solicitud: -1
+          fecha_solicitud:
+            -1
         });
 
     return res.status(200).json(
       solicitudes
     );
+
   } catch (error) {
     console.error(
       "Error listando solicitudes:",
@@ -183,7 +239,9 @@ exports.listar = async (req, res) => {
     return res.status(500).json({
       message:
         "Error al consultar las solicitudes de apoyo",
-      error: error.message
+
+      error:
+        error.message
     });
   }
 };
@@ -193,9 +251,6 @@ exports.listar = async (req, res) => {
  * =========================================================
  * LISTAR MIS SOLICITUDES
  * =========================================================
- *
- * El damnificado consulta únicamente
- * sus propias solicitudes.
  */
 exports.listarMias = async (
   req,
@@ -212,12 +267,14 @@ exports.listarMias = async (
           "titulo ubicacion nivel_prioridad estado"
         )
         .sort({
-          fecha_solicitud: -1
+          fecha_solicitud:
+            -1
         });
 
     return res.status(200).json(
       solicitudes
     );
+
   } catch (error) {
     console.error(
       "Error consultando mis solicitudes:",
@@ -227,7 +284,9 @@ exports.listarMias = async (
     return res.status(500).json({
       message:
         "Error al consultar las solicitudes del usuario",
-      error: error.message
+
+      error:
+        error.message
     });
   }
 };
@@ -237,12 +296,6 @@ exports.listarMias = async (
  * =========================================================
  * CONSULTAR SOLICITUD POR ID
  * =========================================================
- *
- * Administrador:
- * puede consultar cualquier solicitud.
- *
- * Damnificado:
- * solamente una solicitud propia.
  */
 exports.obtenerPorId = async (
   req,
@@ -293,6 +346,7 @@ exports.obtenerPorId = async (
     return res.status(200).json(
       solicitud
     );
+
   } catch (error) {
     console.error(
       "Error consultando solicitud:",
@@ -302,7 +356,9 @@ exports.obtenerPorId = async (
     return res.status(500).json({
       message:
         "Error al consultar la solicitud de apoyo",
-      error: error.message
+
+      error:
+        error.message
     });
   }
 };
@@ -313,9 +369,7 @@ exports.obtenerPorId = async (
  * ACTUALIZAR MI SOLICITUD
  * =========================================================
  *
- * El damnificado puede modificar
- * una solicitud propia mientras
- * permanezca pendiente.
+ * Solo mientras permanezca pendiente.
  */
 exports.actualizarMia = async (
   req,
@@ -324,7 +378,9 @@ exports.actualizarMia = async (
   try {
     const solicitud =
       await SolicitudApoyo.findOne({
-        _id: req.params.id,
+        _id:
+          req.params.id,
+
         usuario_id:
           req.user._id
       });
@@ -338,7 +394,7 @@ exports.actualizarMia = async (
 
     if (
       solicitud.estado !==
-        "pendiente"
+      "pendiente"
     ) {
       return res.status(400).json({
         message:
@@ -355,25 +411,26 @@ exports.actualizarMia = async (
       prioridad
     } = req.body;
 
-    /*
-     * Si cambia la incidencia,
-     * debe existir y ser propia.
-     */
+
     if (
       incidencia_id !==
-        undefined
+      undefined
     ) {
       if (
-        incidencia_id === null ||
-        incidencia_id === ""
+        incidencia_id ===
+          null ||
+        incidencia_id ===
+          ""
       ) {
         solicitud.incidencia_id =
           null;
+
       } else {
         const incidencia =
           await Incidencia.findOne({
             _id:
               incidencia_id,
+
             usuario_id:
               req.user._id
           });
@@ -390,30 +447,39 @@ exports.actualizarMia = async (
       }
     }
 
+
     if (
       tipo_apoyo !==
-        undefined
+      undefined
     ) {
       solicitud.tipo_apoyo =
         tipo_apoyo.trim();
     }
 
+
     if (
       descripcion !==
-        undefined
+      undefined
     ) {
       solicitud.descripcion =
         descripcion.trim();
     }
 
+
     if (
       cantidad_requerida !==
-        undefined
+      undefined
     ) {
-      if (
+      const cantidad =
         Number(
           cantidad_requerida
-        ) < 1
+        );
+
+      if (
+        Number.isNaN(
+          cantidad
+        ) ||
+        cantidad < 1
       ) {
         return res.status(400).json({
           message:
@@ -422,22 +488,22 @@ exports.actualizarMia = async (
       }
 
       solicitud.cantidad_requerida =
-        Number(
-          cantidad_requerida
-        );
+        cantidad;
     }
+
 
     if (
       unidad_medida !==
-        undefined
+      undefined
     ) {
       solicitud.unidad_medida =
         unidad_medida.trim();
     }
 
+
     if (
       prioridad !==
-        undefined
+      undefined
     ) {
       const prioridadesPermitidas = [
         "baja",
@@ -461,7 +527,9 @@ exports.actualizarMia = async (
         prioridad;
     }
 
+
     await solicitud.save();
+
 
     const solicitudActualizada =
       await SolicitudApoyo.findById(
@@ -472,6 +540,7 @@ exports.actualizarMia = async (
           "titulo ubicacion nivel_prioridad estado"
         );
 
+
     return res.status(200).json({
       message:
         "Solicitud de apoyo actualizada correctamente",
@@ -479,6 +548,7 @@ exports.actualizarMia = async (
       solicitud:
         solicitudActualizada
     });
+
   } catch (error) {
     console.error(
       "Error actualizando solicitud:",
@@ -488,7 +558,9 @@ exports.actualizarMia = async (
     return res.status(500).json({
       message:
         "Error al actualizar la solicitud de apoyo",
-      error: error.message
+
+      error:
+        error.message
     });
   }
 };
@@ -498,10 +570,6 @@ exports.actualizarMia = async (
  * =========================================================
  * CANCELAR MI SOLICITUD
  * =========================================================
- *
- * El damnificado puede cancelar
- * su propia solicitud mientras
- * no haya sido atendida.
  */
 exports.cancelarMia = async (
   req,
@@ -510,7 +578,9 @@ exports.cancelarMia = async (
   try {
     const solicitud =
       await SolicitudApoyo.findOne({
-        _id: req.params.id,
+        _id:
+          req.params.id,
+
         usuario_id:
           req.user._id
       });
@@ -524,7 +594,7 @@ exports.cancelarMia = async (
 
     if (
       solicitud.estado ===
-        "atendida"
+      "atendida"
     ) {
       return res.status(400).json({
         message:
@@ -543,6 +613,7 @@ exports.cancelarMia = async (
 
       solicitud
     });
+
   } catch (error) {
     console.error(
       "Error cancelando solicitud:",
@@ -552,7 +623,9 @@ exports.cancelarMia = async (
     return res.status(500).json({
       message:
         "Error al cancelar la solicitud de apoyo",
-      error: error.message
+
+      error:
+        error.message
     });
   }
 };
@@ -566,11 +639,13 @@ exports.cancelarMia = async (
  * Solo administrador.
  *
  * Estados:
+ * - pendiente
+ * - en_proceso
+ * - atendida
+ * - cancelada
  *
- * pendiente
- * en_proceso
- * atendida
- * cancelada
+ * Cuando realmente cambia el estado,
+ * se notifica automáticamente al damnificado.
  */
 exports.cambiarEstado = async (
   req,
@@ -582,12 +657,14 @@ exports.cambiarEstado = async (
       observacion_admin
     } = req.body;
 
+
     const estadosPermitidos = [
       "pendiente",
       "en_proceso",
       "atendida",
       "cancelada"
     ];
+
 
     if (
       !estado ||
@@ -601,10 +678,12 @@ exports.cambiarEstado = async (
       });
     }
 
+
     const solicitud =
       await SolicitudApoyo.findById(
         req.params.id
       );
+
 
     if (!solicitud) {
       return res.status(404).json({
@@ -613,32 +692,109 @@ exports.cambiarEstado = async (
       });
     }
 
+
+    const estadoAnterior =
+      solicitud.estado;
+
+
     solicitud.estado =
       estado;
 
+
     if (
       observacion_admin !==
-        undefined
+      undefined
     ) {
       solicitud.observacion_admin =
         observacion_admin.trim();
     }
 
-    /*
-     * Cuando la solicitud se atiende,
-     * registramos la fecha.
-     */
+
     if (
-      estado === "atendida"
+      estado ===
+      "atendida"
     ) {
-      solicitud.fecha_atencion =
-        new Date();
+      /*
+       * Conservamos una fecha ya existente
+       * si se envía nuevamente el mismo estado.
+       */
+      if (
+        estadoAnterior !==
+          "atendida" ||
+        !solicitud.fecha_atencion
+      ) {
+        solicitud.fecha_atencion =
+          new Date();
+      }
+
     } else {
       solicitud.fecha_atencion =
         null;
     }
 
+
     await solicitud.save();
+
+
+    /*
+     * =====================================================
+     * NOTIFICACIÓN AUTOMÁTICA
+     * =====================================================
+     */
+    if (
+      estadoAnterior !==
+      estado
+    ) {
+      const nombresEstado = {
+        pendiente:
+          "pendiente",
+
+        en_proceso:
+          "en proceso",
+
+        atendida:
+          "atendida",
+
+        cancelada:
+          "cancelada"
+      };
+
+
+      let mensaje =
+        `Tu solicitud de apoyo "${solicitud.tipo_apoyo}" cambió de estado a ${nombresEstado[estado]}.`;
+
+
+      if (
+        solicitud.observacion_admin
+      ) {
+        mensaje +=
+          ` Observación: ${solicitud.observacion_admin}`;
+      }
+
+
+      await crearNotificacion({
+        usuario_destino_id:
+          solicitud.usuario_id,
+
+        titulo:
+          "Actualización de solicitud de apoyo",
+
+        mensaje,
+
+        tipo:
+          estado ===
+            "atendida"
+            ? "solicitud_atendida"
+            : "solicitud_estado",
+
+        modulo:
+          "solicitud_apoyo",
+
+        recurso_id:
+          solicitud._id
+      });
+    }
+
 
     const solicitudActualizada =
       await SolicitudApoyo.findById(
@@ -653,6 +809,7 @@ exports.cambiarEstado = async (
           "titulo ubicacion nivel_prioridad estado"
         );
 
+
     return res.status(200).json({
       message:
         "Estado de la solicitud actualizado correctamente",
@@ -660,6 +817,7 @@ exports.cambiarEstado = async (
       solicitud:
         solicitudActualizada
     });
+
   } catch (error) {
     console.error(
       "Error cambiando estado de solicitud:",
@@ -669,7 +827,9 @@ exports.cambiarEstado = async (
     return res.status(500).json({
       message:
         "Error al cambiar el estado de la solicitud de apoyo",
-      error: error.message
+
+      error:
+        error.message
     });
   }
 };

@@ -1,11 +1,19 @@
-const Damnificado = require("../models/Damnificado");
+const Damnificado = require(
+  "../models/Damnificado"
+);
+
+const {
+  crearNotificacion
+} = require(
+  "./notificaciones.controller"
+);
 
 
 /*
  * =========================================================
  * FUNCIÓN AUXILIAR
  * =========================================================
- * Construye una respuesta completa del perfil de damnificado.
+ * Construye una respuesta completa del perfil.
  */
 async function obtenerPerfilCompleto(id) {
   return Damnificado.findById(id)
@@ -27,22 +35,29 @@ async function obtenerPerfilCompleto(id) {
  *
  * Uso administrativo.
  */
-exports.list = async (req, res) => {
+exports.list = async (
+  req,
+  res
+) => {
   try {
-    const items = await Damnificado.find()
-      .populate(
-        "usuario_id",
-        "nombre_completo correo telefono rol"
-      )
-      .populate(
-        "registrado_por",
-        "nombre_completo correo rol"
-      )
-      .sort({
-        fecha_registro: -1
-      });
+    const items =
+      await Damnificado.find()
+        .populate(
+          "usuario_id",
+          "nombre_completo correo telefono rol"
+        )
+        .populate(
+          "registrado_por",
+          "nombre_completo correo rol"
+        )
+        .sort({
+          fecha_registro: -1
+        });
 
-    return res.status(200).json(items);
+    return res.status(200).json(
+      items
+    );
+
   } catch (error) {
     console.error(
       "Error listando damnificados:",
@@ -52,7 +67,9 @@ exports.list = async (req, res) => {
     return res.status(500).json({
       message:
         "Error al consultar los damnificados",
-      error: error.message
+
+      error:
+        error.message
     });
   }
 };
@@ -62,22 +79,25 @@ exports.list = async (req, res) => {
  * =========================================================
  * CONSULTAR MI PERFIL
  * =========================================================
- *
- * Solo usuarios con rol damnificado.
  */
-exports.my = async (req, res) => {
+exports.my = async (
+  req,
+  res
+) => {
   try {
-    const item = await Damnificado.findOne({
-      usuario_id: req.user._id
-    })
-      .populate(
-        "usuario_id",
-        "nombre_completo correo telefono rol"
-      )
-      .populate(
-        "registrado_por",
-        "nombre_completo correo rol"
-      );
+    const item =
+      await Damnificado.findOne({
+        usuario_id:
+          req.user._id
+      })
+        .populate(
+          "usuario_id",
+          "nombre_completo correo telefono rol"
+        )
+        .populate(
+          "registrado_por",
+          "nombre_completo correo rol"
+        );
 
     if (!item) {
       return res.status(404).json({
@@ -86,7 +106,10 @@ exports.my = async (req, res) => {
       });
     }
 
-    return res.status(200).json(item);
+    return res.status(200).json(
+      item
+    );
+
   } catch (error) {
     console.error(
       "Error consultando perfil de damnificado:",
@@ -96,7 +119,9 @@ exports.my = async (req, res) => {
     return res.status(500).json({
       message:
         "Error al consultar el perfil de damnificado",
-      error: error.message
+
+      error:
+        error.message
     });
   }
 };
@@ -107,19 +132,16 @@ exports.my = async (req, res) => {
  * CREAR O ACTUALIZAR MI PERFIL
  * =========================================================
  *
- * Si el perfil no existe:
- * - lo crea.
+ * Si no existe:
+ * - crea el perfil.
  *
- * Si ya existe:
- * - actualiza únicamente los campos permitidos.
- *
- * El damnificado NO puede modificar:
- * - usuario_id
- * - registrado_por
- * - estado_solicitud
- * - fecha_registro
+ * Si existe:
+ * - actualiza únicamente campos permitidos.
  */
-exports.updateMy = async (req, res) => {
+exports.updateMy = async (
+  req,
+  res
+) => {
   try {
     const {
       ubicacion,
@@ -129,13 +151,17 @@ exports.updateMy = async (req, res) => {
       evidencias
     } = req.body;
 
-    let item = await Damnificado.findOne({
-      usuario_id: req.user._id
-    });
+
+    let item =
+      await Damnificado.findOne({
+        usuario_id:
+          req.user._id
+      });
+
 
     /*
      * =====================================================
-     * CREACIÓN DEL PERFIL
+     * CREACIÓN
      * =====================================================
      */
     if (!item) {
@@ -150,60 +176,79 @@ exports.updateMy = async (req, res) => {
         });
       }
 
-      item = await Damnificado.create({
-        usuario_id: req.user._id,
 
-        registrado_por: req.user._id,
+      item =
+        await Damnificado.create({
+          usuario_id:
+            req.user._id,
 
-        ubicacion: {
-          departamento:
-            ubicacion.departamento,
+          registrado_por:
+            req.user._id,
 
-          municipio:
-            ubicacion.municipio,
+          ubicacion: {
+            departamento:
+              ubicacion.departamento,
 
-          vereda_sector:
-            ubicacion.vereda_sector || "",
+            municipio:
+              ubicacion.municipio,
 
-          direccion:
-            ubicacion.direccion || "",
+            vereda_sector:
+              ubicacion.vereda_sector ||
+              "",
 
-          geolocalizacion:
-            ubicacion.geolocalizacion || {
-              type: "Point",
-              coordinates: [0, 0]
-            }
-        },
+            direccion:
+              ubicacion.direccion ||
+              "",
 
-        datos_familiares:
-          datos_familiares || {
-            cantidad_personas: 1,
-            descripcion_personas: ""
+            geolocalizacion:
+              ubicacion.geolocalizacion ||
+              {
+                type:
+                  "Point",
+
+                coordinates:
+                  [0, 0]
+              }
           },
 
-        afectaciones:
-          afectaciones || {},
+          datos_familiares:
+            datos_familiares ||
+            {
+              cantidad_personas:
+                1,
 
-        necesidades_urgentes:
-          Array.isArray(
-            necesidades_urgentes
-          )
-            ? necesidades_urgentes
-            : [],
+              descripcion_personas:
+                ""
+            },
 
-        evidencias:
-          Array.isArray(evidencias)
-            ? evidencias
-            : [],
+          afectaciones:
+            afectaciones ||
+            {},
 
-        estado_solicitud:
-          "pendiente"
-      });
+          necesidades_urgentes:
+            Array.isArray(
+              necesidades_urgentes
+            )
+              ? necesidades_urgentes
+              : [],
+
+          evidencias:
+            Array.isArray(
+              evidencias
+            )
+              ? evidencias
+              : [],
+
+          estado_solicitud:
+            "pendiente"
+        });
+
 
       const perfil =
         await obtenerPerfilCompleto(
           item._id
         );
+
 
       return res.status(201).json({
         message:
@@ -216,7 +261,7 @@ exports.updateMy = async (req, res) => {
 
     /*
      * =====================================================
-     * ACTUALIZACIÓN DEL PERFIL EXISTENTE
+     * ACTUALIZACIÓN
      * =====================================================
      */
 
@@ -229,6 +274,7 @@ exports.updateMy = async (req, res) => {
           ubicacion.departamento;
       }
 
+
       if (
         ubicacion.municipio !==
         undefined
@@ -236,6 +282,7 @@ exports.updateMy = async (req, res) => {
         item.ubicacion.municipio =
           ubicacion.municipio;
       }
+
 
       if (
         ubicacion.vereda_sector !==
@@ -245,6 +292,7 @@ exports.updateMy = async (req, res) => {
           ubicacion.vereda_sector;
       }
 
+
       if (
         ubicacion.direccion !==
         undefined
@@ -252,6 +300,7 @@ exports.updateMy = async (req, res) => {
         item.ubicacion.direccion =
           ubicacion.direccion;
       }
+
 
       if (
         ubicacion.geolocalizacion !==
@@ -266,7 +315,8 @@ exports.updateMy = async (req, res) => {
     if (datos_familiares) {
       if (
         datos_familiares
-          .cantidad_personas !== undefined
+          .cantidad_personas !==
+        undefined
       ) {
         item.datos_familiares
           .cantidad_personas =
@@ -274,9 +324,11 @@ exports.updateMy = async (req, res) => {
             .cantidad_personas;
       }
 
+
       if (
         datos_familiares
-          .descripcion_personas !== undefined
+          .descripcion_personas !==
+        undefined
       ) {
         item.datos_familiares
           .descripcion_personas =
@@ -295,14 +347,18 @@ exports.updateMy = async (req, res) => {
           afectaciones.vivienda;
       }
 
+
       if (
         afectaciones
-          .bienes_materiales !== undefined
+          .bienes_materiales !==
+        undefined
       ) {
         item.afectaciones
           .bienes_materiales =
-          afectaciones.bienes_materiales;
+          afectaciones
+            .bienes_materiales;
       }
+
 
       if (
         afectaciones
@@ -315,14 +371,18 @@ exports.updateMy = async (req, res) => {
             .perdida_agricola_ganadera;
       }
 
+
       if (
         afectaciones
-          .detalle_perdidas !== undefined
+          .detalle_perdidas !==
+        undefined
       ) {
         item.afectaciones
           .detalle_perdidas =
-          afectaciones.detalle_perdidas;
+          afectaciones
+            .detalle_perdidas;
       }
+
 
       if (
         afectaciones
@@ -331,16 +391,20 @@ exports.updateMy = async (req, res) => {
       ) {
         item.afectaciones
           .mascotas_afectadas =
-          afectaciones.mascotas_afectadas;
+          afectaciones
+            .mascotas_afectadas;
       }
+
 
       if (
         afectaciones
-          .cantidad_mascotas !== undefined
+          .cantidad_mascotas !==
+        undefined
       ) {
         item.afectaciones
           .cantidad_mascotas =
-          afectaciones.cantidad_mascotas;
+          afectaciones
+            .cantidad_mascotas;
       }
     }
 
@@ -365,22 +429,29 @@ exports.updateMy = async (req, res) => {
     }
 
 
-    if (evidencias !== undefined) {
-      if (!Array.isArray(evidencias)) {
+    if (
+      evidencias !==
+      undefined
+    ) {
+      if (
+        !Array.isArray(
+          evidencias
+        )
+      ) {
         return res.status(400).json({
           message:
             "evidencias debe ser un arreglo"
         });
       }
 
-      item.evidencias = evidencias;
+      item.evidencias =
+        evidencias;
     }
 
 
     /*
-     * Protección adicional:
-     * departamento y municipio nunca
-     * pueden quedar vacíos.
+     * Departamento y municipio
+     * nunca pueden quedar vacíos.
      */
     if (
       !item.ubicacion.departamento ||
@@ -395,10 +466,12 @@ exports.updateMy = async (req, res) => {
 
     await item.save();
 
+
     const perfil =
       await obtenerPerfilCompleto(
         item._id
       );
+
 
     return res.status(200).json({
       message:
@@ -416,7 +489,9 @@ exports.updateMy = async (req, res) => {
     return res.status(500).json({
       message:
         "Error al guardar el perfil de damnificado",
-      error: error.message
+
+      error:
+        error.message
     });
   }
 };
@@ -428,6 +503,9 @@ exports.updateMy = async (req, res) => {
  * =========================================================
  *
  * Solo administrador.
+ *
+ * Cuando realmente cambia el estado,
+ * se genera una notificación automática.
  */
 exports.updateEstado = async (
   req,
@@ -438,12 +516,14 @@ exports.updateEstado = async (
       estado_solicitud
     } = req.body;
 
+
     const estadosPermitidos = [
       "pendiente",
       "en_proceso",
       "atendida",
       "cerrada"
     ];
+
 
     if (
       !estado_solicitud ||
@@ -466,6 +546,7 @@ exports.updateEstado = async (
         req.params.id
       );
 
+
     if (!item) {
       return res.status(404).json({
         message:
@@ -474,10 +555,64 @@ exports.updateEstado = async (
     }
 
 
+    const estadoAnterior =
+      item.estado_solicitud;
+
+
     item.estado_solicitud =
       estado_solicitud;
 
+
     await item.save();
+
+
+    /*
+     * =====================================================
+     * NOTIFICACIÓN AUTOMÁTICA
+     * =====================================================
+     *
+     * Solo se genera si realmente
+     * cambió el estado.
+     */
+    if (
+      estadoAnterior !==
+      estado_solicitud
+    ) {
+      const nombresEstado = {
+        pendiente:
+          "pendiente",
+
+        en_proceso:
+          "en proceso",
+
+        atendida:
+          "atendida",
+
+        cerrada:
+          "cerrada"
+      };
+
+
+      await crearNotificacion({
+        usuario_destino_id:
+          item.usuario_id,
+
+        titulo:
+          "Actualización de tu perfil",
+
+        mensaje:
+          `El estado de tu perfil de damnificado cambió a ${nombresEstado[estado_solicitud]}.`,
+
+        tipo:
+          "perfil_damnificado",
+
+        modulo:
+          "damnificado",
+
+        recurso_id:
+          item._id
+      });
+    }
 
 
     const perfil =
@@ -502,7 +637,9 @@ exports.updateEstado = async (
     return res.status(500).json({
       message:
         "Error al actualizar el estado del damnificado",
-      error: error.message
+
+      error:
+        error.message
     });
   }
 };

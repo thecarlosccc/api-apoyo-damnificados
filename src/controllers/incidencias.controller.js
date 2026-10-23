@@ -1,16 +1,31 @@
-const Incidencia = require("../models/Incidencia");
+const Incidencia = require(
+  "../models/Incidencia"
+);
+
 const CategoriaIncidencia = require(
   "../models/CategoriaIncidencia"
 );
+
+const {
+  crearNotificacion
+} = require(
+  "./notificaciones.controller"
+);
+
 
 /*
  * =========================================================
  * CREAR INCIDENCIA
  * =========================================================
+ *
  * El usuario damnificado crea una incidencia.
- * El usuario_id se obtiene del JWT y nunca del body.
+ * El usuario_id se obtiene del JWT
+ * y nunca del body.
  */
-exports.crear = async (req, res) => {
+exports.crear = async (
+  req,
+  res
+) => {
   try {
     const {
       categoria_id,
@@ -21,6 +36,7 @@ exports.crear = async (req, res) => {
       evidencias,
       nivel_prioridad
     } = req.body;
+
 
     if (
       !categoria_id ||
@@ -34,15 +50,20 @@ exports.crear = async (req, res) => {
       });
     }
 
+
     /*
      * Validamos que la categoría exista
      * y esté activa.
      */
     const categoria =
       await CategoriaIncidencia.findOne({
-        _id: categoria_id,
-        estado: "activo"
+        _id:
+          categoria_id,
+
+        estado:
+          "activo"
       });
+
 
     if (!categoria) {
       return res.status(400).json({
@@ -51,22 +72,66 @@ exports.crear = async (req, res) => {
       });
     }
 
-    const incidencia = await Incidencia.create({
-      usuario_id: req.user._id,
-      categoria_id,
-      titulo: titulo.trim(),
-      descripcion: descripcion.trim(),
-      ubicacion: ubicacion.trim(),
-      geolocalizacion:
-        geolocalizacion || undefined,
-      evidencias:
-        Array.isArray(evidencias)
-          ? evidencias
-          : [],
-      nivel_prioridad:
-        nivel_prioridad || "media",
-      estado: "pendiente"
-    });
+
+    const prioridadesPermitidas = [
+      "baja",
+      "media",
+      "alta",
+      "critica"
+    ];
+
+
+    const prioridadFinal =
+      nivel_prioridad ||
+      "media";
+
+
+    if (
+      !prioridadesPermitidas.includes(
+        prioridadFinal
+      )
+    ) {
+      return res.status(400).json({
+        message:
+          "Nivel de prioridad no válido"
+      });
+    }
+
+
+    const incidencia =
+      await Incidencia.create({
+        usuario_id:
+          req.user._id,
+
+        categoria_id,
+
+        titulo:
+          titulo.trim(),
+
+        descripcion:
+          descripcion.trim(),
+
+        ubicacion:
+          ubicacion.trim(),
+
+        geolocalizacion:
+          geolocalizacion ||
+          undefined,
+
+        evidencias:
+          Array.isArray(
+            evidencias
+          )
+            ? evidencias
+            : [],
+
+        nivel_prioridad:
+          prioridadFinal,
+
+        estado:
+          "pendiente"
+      });
+
 
     const incidenciaCompleta =
       await Incidencia.findById(
@@ -81,11 +146,15 @@ exports.crear = async (req, res) => {
           "nombre descripcion estado"
         );
 
+
     return res.status(201).json({
       message:
         "Incidencia registrada correctamente",
-      incidencia: incidenciaCompleta
+
+      incidencia:
+        incidenciaCompleta
     });
+
   } catch (error) {
     console.error(
       "Error creando incidencia:",
@@ -95,7 +164,9 @@ exports.crear = async (req, res) => {
     return res.status(500).json({
       message:
         "Error al registrar la incidencia",
-      error: error.message
+
+      error:
+        error.message
     });
   }
 };
@@ -105,33 +176,45 @@ exports.crear = async (req, res) => {
  * =========================================================
  * LISTAR TODAS LAS INCIDENCIAS
  * =========================================================
+ *
  * Uso administrativo.
  *
- * Permite filtros opcionales:
+ * Filtros opcionales:
+ *
  * ?estado=pendiente
  * ?prioridad=alta
  * ?categoria_id=...
  */
-exports.listar = async (req, res) => {
+exports.listar = async (
+  req,
+  res
+) => {
   try {
     const filtro = {};
 
+
     if (req.query.estado) {
-      filtro.estado = req.query.estado;
+      filtro.estado =
+        req.query.estado;
     }
+
 
     if (req.query.prioridad) {
       filtro.nivel_prioridad =
         req.query.prioridad;
     }
 
+
     if (req.query.categoria_id) {
       filtro.categoria_id =
         req.query.categoria_id;
     }
 
+
     const incidencias =
-      await Incidencia.find(filtro)
+      await Incidencia.find(
+        filtro
+      )
         .populate(
           "usuario_id",
           "nombre_completo correo telefono rol"
@@ -144,9 +227,11 @@ exports.listar = async (req, res) => {
           fecha_reporte: -1
         });
 
+
     return res.status(200).json(
       incidencias
     );
+
   } catch (error) {
     console.error(
       "Error listando incidencias:",
@@ -156,7 +241,9 @@ exports.listar = async (req, res) => {
     return res.status(500).json({
       message:
         "Error al consultar las incidencias",
-      error: error.message
+
+      error:
+        error.message
     });
   }
 };
@@ -166,14 +253,19 @@ exports.listar = async (req, res) => {
  * =========================================================
  * LISTAR MIS INCIDENCIAS
  * =========================================================
+ *
  * El damnificado consulta únicamente
  * las incidencias que él mismo reportó.
  */
-exports.listarMias = async (req, res) => {
+exports.listarMias = async (
+  req,
+  res
+) => {
   try {
     const incidencias =
       await Incidencia.find({
-        usuario_id: req.user._id
+        usuario_id:
+          req.user._id
       })
         .populate(
           "categoria_id",
@@ -183,9 +275,11 @@ exports.listarMias = async (req, res) => {
           fecha_reporte: -1
         });
 
+
     return res.status(200).json(
       incidencias
     );
+
   } catch (error) {
     console.error(
       "Error consultando mis incidencias:",
@@ -195,7 +289,9 @@ exports.listarMias = async (req, res) => {
     return res.status(500).json({
       message:
         "Error al consultar las incidencias del usuario",
-      error: error.message
+
+      error:
+        error.message
     });
   }
 };
@@ -212,7 +308,10 @@ exports.listarMias = async (req, res) => {
  * Damnificado:
  * solamente puede consultar las propias.
  */
-exports.obtenerPorId = async (req, res) => {
+exports.obtenerPorId = async (
+  req,
+  res
+) => {
   try {
     const incidencia =
       await Incidencia.findById(
@@ -227,6 +326,7 @@ exports.obtenerPorId = async (req, res) => {
           "nombre descripcion estado"
         );
 
+
     if (!incidencia) {
       return res.status(404).json({
         message:
@@ -234,10 +334,15 @@ exports.obtenerPorId = async (req, res) => {
       });
     }
 
+
     if (
-      req.user.rol !== "administrador" &&
-      incidencia.usuario_id._id.toString() !==
-        req.user._id.toString()
+      req.user.rol !==
+        "administrador" &&
+      incidencia.usuario_id
+        ._id
+        .toString() !==
+        req.user._id
+          .toString()
     ) {
       return res.status(403).json({
         message:
@@ -245,9 +350,11 @@ exports.obtenerPorId = async (req, res) => {
       });
     }
 
+
     return res.status(200).json(
       incidencia
     );
+
   } catch (error) {
     console.error(
       "Error consultando incidencia:",
@@ -257,7 +364,9 @@ exports.obtenerPorId = async (req, res) => {
     return res.status(500).json({
       message:
         "Error al consultar la incidencia",
-      error: error.message
+
+      error:
+        error.message
     });
   }
 };
@@ -280,9 +389,13 @@ exports.actualizarMia = async (
   try {
     const incidencia =
       await Incidencia.findOne({
-        _id: req.params.id,
-        usuario_id: req.user._id
+        _id:
+          req.params.id,
+
+        usuario_id:
+          req.user._id
       });
+
 
     if (!incidencia) {
       return res.status(404).json({
@@ -291,18 +404,21 @@ exports.actualizarMia = async (
       });
     }
 
+
     /*
      * Una incidencia resuelta conserva
      * su información como evidencia histórica.
      */
     if (
-      incidencia.estado === "resuelta"
+      incidencia.estado ===
+      "resuelta"
     ) {
       return res.status(400).json({
         message:
           "Una incidencia resuelta no puede ser modificada"
       });
     }
+
 
     const {
       categoria_id,
@@ -314,6 +430,7 @@ exports.actualizarMia = async (
       nivel_prioridad
     } = req.body;
 
+
     /*
      * Si cambia la categoría,
      * debe existir y estar activa.
@@ -321,13 +438,19 @@ exports.actualizarMia = async (
     if (
       categoria_id &&
       categoria_id !==
-        incidencia.categoria_id.toString()
+        incidencia
+          .categoria_id
+          .toString()
     ) {
       const categoria =
         await CategoriaIncidencia.findOne({
-          _id: categoria_id,
-          estado: "activo"
+          _id:
+            categoria_id,
+
+          estado:
+            "activo"
         });
+
 
       if (!categoria) {
         return res.status(400).json({
@@ -336,39 +459,72 @@ exports.actualizarMia = async (
         });
       }
 
+
       incidencia.categoria_id =
         categoria_id;
     }
 
-    if (titulo !== undefined) {
+
+    if (
+      titulo !==
+      undefined
+    ) {
       incidencia.titulo =
         titulo.trim();
     }
 
-    if (descripcion !== undefined) {
+
+    if (
+      descripcion !==
+      undefined
+    ) {
       incidencia.descripcion =
         descripcion.trim();
     }
 
-    if (ubicacion !== undefined) {
+
+    if (
+      ubicacion !==
+      undefined
+    ) {
       incidencia.ubicacion =
         ubicacion.trim();
     }
 
+
     if (
-      geolocalizacion !== undefined
+      geolocalizacion !==
+      undefined
     ) {
       incidencia.geolocalizacion =
         geolocalizacion;
     }
 
-    if (Array.isArray(evidencias)) {
+
+    if (
+      evidencias !==
+      undefined
+    ) {
+      if (
+        !Array.isArray(
+          evidencias
+        )
+      ) {
+        return res.status(400).json({
+          message:
+            "evidencias debe ser un arreglo"
+        });
+      }
+
+
       incidencia.evidencias =
         evidencias;
     }
 
+
     if (
-      nivel_prioridad !== undefined
+      nivel_prioridad !==
+      undefined
     ) {
       const prioridadesPermitidas = [
         "baja",
@@ -376,6 +532,7 @@ exports.actualizarMia = async (
         "alta",
         "critica"
       ];
+
 
       if (
         !prioridadesPermitidas.includes(
@@ -388,11 +545,14 @@ exports.actualizarMia = async (
         });
       }
 
+
       incidencia.nivel_prioridad =
         nivel_prioridad;
     }
 
+
     await incidencia.save();
+
 
     const incidenciaActualizada =
       await Incidencia.findById(
@@ -403,12 +563,15 @@ exports.actualizarMia = async (
           "nombre descripcion estado"
         );
 
+
     return res.status(200).json({
       message:
         "Incidencia actualizada correctamente",
+
       incidencia:
         incidenciaActualizada
     });
+
   } catch (error) {
     console.error(
       "Error actualizando incidencia:",
@@ -418,7 +581,9 @@ exports.actualizarMia = async (
     return res.status(500).json({
       message:
         "Error al actualizar la incidencia",
-      error: error.message
+
+      error:
+        error.message
     });
   }
 };
@@ -432,9 +597,14 @@ exports.actualizarMia = async (
  * Solo administrador.
  *
  * Flujo:
+ *
  * pendiente
  * en_proceso
  * resuelta
+ *
+ * Cuando el estado cambia se genera
+ * una notificación automática para
+ * el damnificado propietario.
  */
 exports.cambiarEstado = async (
   req,
@@ -445,11 +615,13 @@ exports.cambiarEstado = async (
       estado
     } = req.body;
 
+
     const estadosPermitidos = [
       "pendiente",
       "en_proceso",
       "resuelta"
     ];
+
 
     if (
       !estado ||
@@ -463,10 +635,12 @@ exports.cambiarEstado = async (
       });
     }
 
+
     const incidencia =
       await Incidencia.findById(
         req.params.id
       );
+
 
     if (!incidencia) {
       return res.status(404).json({
@@ -475,9 +649,63 @@ exports.cambiarEstado = async (
       });
     }
 
-    incidencia.estado = estado;
+
+    const estadoAnterior =
+      incidencia.estado;
+
+
+    incidencia.estado =
+      estado;
+
 
     await incidencia.save();
+
+
+    /*
+     * =====================================================
+     * NOTIFICACIÓN AUTOMÁTICA
+     * =====================================================
+     *
+     * Solamente se genera si realmente
+     * hubo un cambio de estado.
+     */
+    if (
+      estadoAnterior !==
+      estado
+    ) {
+      const nombresEstado = {
+        pendiente:
+          "pendiente",
+
+        en_proceso:
+          "en proceso",
+
+        resuelta:
+          "resuelta"
+      };
+
+
+      await crearNotificacion({
+        usuario_destino_id:
+          incidencia.usuario_id,
+
+        titulo:
+          "Actualización de incidencia",
+
+        mensaje:
+          `La incidencia "${incidencia.titulo}" cambió de estado a ${nombresEstado[estado]}.`,
+
+        tipo:
+          "incidencia_estado",
+
+        modulo:
+          "incidencia",
+
+        recurso_id:
+          incidencia._id
+      });
+    }
+
 
     const incidenciaActualizada =
       await Incidencia.findById(
@@ -492,12 +720,15 @@ exports.cambiarEstado = async (
           "nombre descripcion estado"
         );
 
+
     return res.status(200).json({
       message:
         "Estado de la incidencia actualizado correctamente",
+
       incidencia:
         incidenciaActualizada
     });
+
   } catch (error) {
     console.error(
       "Error cambiando estado:",
@@ -507,7 +738,9 @@ exports.cambiarEstado = async (
     return res.status(500).json({
       message:
         "Error al cambiar el estado de la incidencia",
-      error: error.message
+
+      error:
+        error.message
     });
   }
 };
